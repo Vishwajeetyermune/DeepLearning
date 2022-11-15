@@ -1,0 +1,264 @@
+
+ASSIGNMENT:-2
+
+import tensorflow as tf
+from tensorflow import keras
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+import random 
+get_ipython().run_line_magic("matplotlib","inline")
+
+
+mnist = tf.keras.datasets.mnist
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+
+len(x_train)
+len(x_test)
+x_train.shape
+x_test.shape
+x_train[0]
+
+
+
+plt.matshow(x_train[11]) #we can change it by changing the argument 
+
+
+x_train = x_train/255
+x_test = x_test/255
+
+
+
+x_train[11]
+
+
+model = keras.Sequential([
+    keras.layers.Flatten(input_shape=(28, 28)),
+    keras.layers.Dense(128, activation='relu'),
+    keras.layers.Dense(10, activation='softmax')
+])
+
+model.summary()
+
+
+
+model.compile(optimizer='sgd',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+history=model.fit(x_train, y_train,validation_data=(x_test,y_test),epochs=10)
+
+
+test_loss, test_acc=model.evaluate(x_test,y_test)
+print("Loss=%.3f" %test_loss)
+print("Accuracy=%.3f" %test_acc)
+
+
+
+
+n=random.randint(0,9999)
+plt.imshow(x_test[n])
+plt.show()
+
+
+
+
+predicted_value=model.predict(x_test)
+print("Handwritten nuber in the image is= %d" %np.argmax(predicted_value))
+
+
+
+get_ipython().run_line_magic('pinfo2','history.history')
+history.history.keys()
+
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['Train', 'Validation'], loc='upper left')
+plt.show()
+
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['Train', 'Validation'], loc='upper left')
+plt.show()
+
+
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Training Loss and accuracy')
+plt.ylabel('accuracy/Loss')
+plt.xlabel('epoch')
+plt.legend(['accuracy', 'val_accuracy','loss','val_loss'])
+plt.show()
+
+
+
+keras_model_path="/content/sample_data"
+model.save(keras_model_path)
+
+
+
+restored_keras_model = tf.keras.models.load_model(keras_model_path)
+
+
+
+
+
+ASSIGNMENT:-4
+
+import matplotlib.pyplot as plt
+import numpy as np 
+import pandas as pd
+import tensorflow as tf
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+from tensorflow.keras import layers, losses
+from tensorflow.keras.datasets import fashion_mnist
+from tensorflow.keras.models import Model
+
+
+(x_train, _), (x_test, _) = fashion_mnist.load_data()
+
+x_train = x_train/255.
+x_test = x_test/255.
+
+print(x_train.shape)
+print(x_test.shape)
+
+
+latent_dim = 64
+class Autoencoder(Model):
+  def __init__(self, latent_dim):
+    super(Autoencoder, self).__init__()
+    self.latent_dim = latent_dim   
+    self.encoder = tf.keras.Sequential([
+      layers.Flatten(),
+      layers.Dense(latent_dim, activation='relu'),
+    ])
+    self.decoder = tf.keras.Sequential([
+      layers.Dense(784, activation='sigmoid'),
+      layers.Reshape((28, 28))
+    ])
+
+  def call(self, x):
+    encoded = self.encoder(x)
+    decoded = self.decoder(encoded)
+    return decoded
+
+autoencoder = Autoencoder(latent_dim)
+  
+
+
+autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+
+autoencoder.fit(x_train, x_train,
+                epochs=10,
+                shuffle=True,
+                validation_data=(x_test, x_test))
+
+
+encoded_imgs = autoencoder.encoder(x_test).numpy()
+decoded_imgs = autoencoder.decoder(encoded_imgs).numpy()
+
+n = 10
+plt.figure(figsize=(20, 4))
+for i in range(n):
+  # display original
+  ax = plt.subplot(2, n, i + 1)
+  plt.imshow(x_test[i])
+  plt.title("original")
+  plt.gray()
+  ax.get_xaxis().set_visible(False)
+  ax.get_yaxis().set_visible(False)
+
+  # display reconstruction
+  ax = plt.subplot(2, n, i + 1 + n)
+  plt.imshow(decoded_imgs[i])
+  plt.title("reconstructed")
+  plt.gray()
+  ax.get_xaxis().set_visible(False)
+  ax.get_yaxis().set_visible(False)
+plt.show()
+
+
+ASSIGNMENT 5:-
+
+import numpy as np
+import keras.backend as K
+from keras.models import Sequential
+from keras.layers import Dense,Embedding,Lambda
+from keras.utils import np_utils
+from keras.preprocessing import sequence 
+from keras.preprocessing.text import Tokenizer
+import gensim
+
+data = open("/content/corona.txt","r")
+covid_data= [text for text in data if text.count("")>=2]
+vectorize=Tokenizer()
+vectorize.fit_on_texts(covid_data)
+covid_data=vectorize.texts_to_sequences(covid_data)
+total_vocab=sum(len(s) for s in covid_data)
+word_count=len(vectorize.word_index)+1
+window_size=2
+
+
+def cbow_model(data,windows_size, total_vocab):
+  total_length=window_size*2
+  for text in data:
+    text_len=len(text)
+    for idx, word in enumerate(text):
+      context_word=[]
+      target=[]
+      begin=idx-window_size
+      end=idx+window_size+1
+      context_word.append([text[i] for i in range(begin,end) if 0<- i< text_len and i!=idx])
+      target.append(word)
+      contextual = sequence.pad_sequences(context_word, total_length=total_length)
+      final_target=np_utils.to_categorical(target, total_vocab)
+      yield(contextual, final_target)
+
+
+model=Sequential()
+model.add(Embedding(input_dim=total_vocab,output_dim=100,input_length=window_size*2))
+model.add(Lambda(lambda x:K.mean(x,axis=1), output_shape=(100,)))
+model.add(Dense(total_vocab, activation="softmax"))
+model.compile(loss="categorical_crossentropy", optimizer="adam")
+for i in range(10):
+  cost=0
+  for x, y in cbow_model(data,window_size, total_vocab):
+    cost+=model.train_on_batch(contextual, final_target)
+  print(i, cost)
+
+dimensions = 100
+vect_file=open("/content/drive/MyDrive/vector.txt", "w")
+vect_file.write('{} {}\n'.format(total_vocab, dimensions))
+
+weight=model.get_weights()[0]
+for text, i in vectorize.word_index.items():
+  final_vec="".join(map(str, list(weight[i,:])))
+  vect_file.write('{}{}\n'.format(text, final_vec))
+vect_file.close()
+
+cbow_output=gensim.models.KeyedVectors.load_word2vec_format("/content/drive/MyDrive/vector.txt", binary=False)
+cbow_output.most_similar(positive=["virus"])
+
+OUTPUT:-
+
+0 0 1 0 2 0 3 0 4 0 5 0 6 0 7 0 8 0 9 0
+
+8
+
+
+
